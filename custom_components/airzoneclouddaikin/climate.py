@@ -1,18 +1,13 @@
 import logging
 from typing import Any, Dict, List, Optional
 from datetime import timedelta
-from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
+from homeassistant.const import UnitOfTemperature, ATTR_TEMPERATURE
 from homeassistant.util.unit_conversion import TemperatureConverter
 from homeassistant.helpers.entity import Entity
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
-    HVAC_MODE_OFF,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODES,
-    SUPPORT_TARGET_TEMPERATURE,
+    ClimateEntityFeature,
+    HVACMode,
 )
 from .const import CONF_USERNAME, CONF_PASSWORD
 
@@ -23,11 +18,11 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=10)
 
 AIRZONECLOUD_DEVICE_HVAC_MODES = [
-    HVAC_MODE_OFF,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
+    HVACMode.OFF,
+    HVACMode.HEAT,
+    HVACMode.COOL,
+    HVACMode.DRY,
+    HVACMode.FAN_ONLY,
 ]
 
 
@@ -84,7 +79,7 @@ class AirzonecloudDaikinDevice(ClimateEntity):
     @property
     def temperature_unit(self):
         """Return the unit of measurement used by the platform."""
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def hvac_mode(self) -> str:
@@ -93,18 +88,18 @@ class AirzonecloudDaikinDevice(ClimateEntity):
 
         if self._azc_device.is_on:
             if mode in ["cool", "cool-air"]:
-                return HVAC_MODE_COOL
+                return HVACMode.COOL
 
             if mode in ["heat", "heat-air"]:
-                return HVAC_MODE_HEAT
+                return HVACMode.HEAT
 
             if mode == "ventilate":
-                return HVAC_MODE_FAN_ONLY
+                return HVACMode.FAN_ONLY
 
             if mode == "dehumidify":
-                return HVAC_MODE_DRY
+                return HVACMode.DRY
 
-        return HVAC_MODE_OFF
+        return HVACMode.OFF
 
     @property
     def hvac_modes(self) -> List[str]:
@@ -134,20 +129,20 @@ class AirzonecloudDaikinDevice(ClimateEntity):
 
     def set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target hvac mode."""
-        if hvac_mode == HVAC_MODE_OFF:
+        if hvac_mode == HVACMode.OFF:
             self.turn_off()
         else:
             if not self._azc_device.is_on:
                 self.turn_on()
 
             # set hvac mode
-            if hvac_mode == HVAC_MODE_HEAT:
+            if hvac_mode == HVACMode.HEAT:
                 self._azc_device.set_mode("heat")
-            elif hvac_mode == HVAC_MODE_COOL:
+            elif hvac_mode == HVACMode.COOL:
                 self._azc_device.set_mode("cool")
-            elif hvac_mode == HVAC_MODE_DRY:
+            elif hvac_mode == HVACMode.DRY:
                 self._azc_device.set_mode("dehumidify")
-            elif hvac_mode == HVAC_MODE_FAN_ONLY:
+            elif hvac_mode == HVACMode.AN_ONLY:
                 self._azc_device.set_mode("ventilate")
 
     def turn_on(self):
@@ -161,20 +156,24 @@ class AirzonecloudDaikinDevice(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return SUPPORT_TARGET_TEMPERATURE
+        return (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
+        )
 
     @property
     def min_temp(self) -> float:
         """Return the minimum temperature."""
         return TemperatureConverter.convert(
-            self._azc_device.min_temperature, TEMP_CELSIUS, self.temperature_unit
+            self._azc_device.min_temperature, UnitOfTemperature.CELSIUS, self.temperature_unit
         )
 
     @property
     def max_temp(self) -> float:
         """Return the maximum temperature."""
         return TemperatureConverter.convert(
-            self._azc_device.max_temperature, TEMP_CELSIUS, self.temperature_unit
+            self._azc_device.max_temperature, UnitOfTemperature.CELSIUS, self.temperature_unit
         )
 
 
@@ -200,3 +199,4 @@ class AirzonecloudDaikinInstallation(Entity):
 
     def update(self):
         self._azc_installation.refresh_devices()
+        
