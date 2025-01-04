@@ -199,4 +199,3 @@ class AirzonecloudDaikinInstallation(Entity):
 
     def update(self):
         self._azc_installation.refresh_devices()
-        
